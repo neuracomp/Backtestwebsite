@@ -1,0 +1,161 @@
+import yfinance as yf
+import pandas as pd
+import plotly.graph_objs as go
+import plotly.subplots as sp
+import ipywidgets as widgets
+from IPython.display import display, clear_output
+
+# Function to calculate RSI
+def calculate_rsi(data, window=14):
+    delta = data['Close'].diff(1)
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    
+    avg_gain = gain.rolling(window=window, min_periods=1).mean()
+    avg_loss = loss.rolling(window=window, min_periods=1).mean()
+    
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    return rsi
+
+# Function to calculate strategy returns
+def calculate_strategy_returns(data, entry_rsi, exit_rsi):
+    data['RSI'] = calculate_rsi(data, window=14)
+    data['Position'] = 0  # Initial position is neutral (0)
+    
+    position = 0
+    for i in range(1, len(data)):
+        if data['RSI'].iloc[i] < entry_rsi and position == 0:
+            position = 1  # Enter long position
+        elif data['RSI'].iloc[i] > exit_rsi and position == 1:
+            position = 0  # Exit long position
+        data.at[data.index[i], 'Position'] = position
+    
+    data['Daily Return'] = data['Close'].pct_change()
+    data['Strategy Return'] = data['Daily Return'] * data['Position'].shift(1)
+    data['Cumulative Strategy Return'] = (1 + data['Strategy Return']).cumprod() - 1
+    data['Cumulative Buy Hold Return'] = (1 + data['Daily Return']).cumprod() - 1
+    
+    return data
+
+# Function to plot the stock data and RSI strategy
+def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi):
+    # Calculate the final cumulative returns
+    final_cumulative_strategy_return = data['Cumulative Strategy Return'].iloc[-1] * 100
+    final_cumulative_buy_hold_return = data['Cumulative Buy Hold Return'].iloc[-1] * 100
+
+    fig = sp.make_subplots(rows=3, cols=1, shared_xaxes=True,
+                           subplot_titles=(f"{ticker} Stock Price - Last Year",
+                                           f"{ticker} RSI - Last Year",
+                                           f"{ticker} Cumulative Returns - Last Year"))
+
+    # Plot closing prices
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Price'),
+                  row=1, col=1)
+    
+    # Plot RSI
+    fig.add_trace(go.Scatter(x=data.index, y=data['RSI'], mode='lines', name='RSI', line=dict(color='orange')),
+                  row=2, col=1)
+    fig.add_shape(type="line", x0=data.index[0], x1=data.index[-1], y0=entry_rsi, y1=entry_rsi,
+                  line=dict(color='green', dash='dash'), row=2, col=1)
+    fig.add_shape(type="line", x0=data.index[0], x1=data.index[-1], y0=exit_rsi, y1=exit_rsi,
+                  line=dict(color='red', dash='dash'), row=2, col=1)
+    
+    # Plot cumulative strategy return
+    fig.add_trace(go.Scatter(x=data.index, y=data['Cumulative Strategy Return'] * 100, mode='lines', name='Cumulative Strategy Return', line=dict(color='green')),
+                  row=3, col=1)
+    # Plot cumulative buy-and-hold return
+    fig.add_trace(go.Scatter(x=data.index, y=data['Cumulative Buy Hold Return'] * 100, mode='lines', name='Cumulative Buy and Hold Return', line=dict(color='blue')),
+                  row=3, col=1)
+    
+    # Add annotation for the final cumulative returns
+    fig.add_annotation(x=data.index[-1], y=final_cumulative_strategy_return,
+                       text=f"Final Strategy Return: {final_cumulative_strategy_return:.2f}%",
+                       showarrow=True, arrowhead=1, row=3, col=1)
+    fig.add_annotation(x=data.index[-1], y=final_cumulative_buy_hold_return,
+                       text=f"Final Buy & Hold Return: {final_cumulative_buy_hold_return:.2f}%",
+                       showarrow=True, arrowhead=1, row=3, col=1)
+
+    # Update layout
+    fig.update_layout(height=900, width=900, title_text=f"{ticker} RSI Trading Strategy Analysis", showlegend=False)
+    fig.update_xaxes(title_text="Date", row=3, col=1)
+    fig.update_yaxes(title_text="Close Price", row=1, col=1)
+    fig.update_yaxes(title_text="RSI", row=2, col=1)
+    fig.update_yaxes(title_text="Cumulative % Return", row=3, col=1)
+    
+    fig.show()
+
+# Function to find the best RSI combination
+def optimize_rsi(ticker):
+    data = yf.download(ticker, period="1y", interval="1d")
+    
+    if data.empty:
+        print("No data fetched. Please check the ticker symbol.")
+        return None, None, None
+    
+    best_entry_rsi = None
+    best_exit_rsi = None
+    best_return = float('-inf')
+    
+    for entry_rsi in range(0, 51, 5):
+        for exit_rsi in range(50, 101, 5):
+            temp_data = calculate_strategy_returns(data.copy(), entry_rsi, exit_rsi)
+            final_return = temp_data['Cumulative Strategy Return'].iloc[-1]
+            if final_return > best_return:
+                best_return = final_return
+                best_entry_rsi = entry_rsi
+                best_exit_rsi = exit_rsi
+    
+    return best_entry_rsi, best_exit_rsi, best_return
+
+# Create the interactive widgets
+tickers_widget = widgets.Text(value='AAPL,MSFT,GOOG', description='Tickers:')
+entry_rsi_slider = widgets.IntSlider(value=30, min=0, max=50, step=1, description='Entry RSI:')
+exit_rsi_slider = widgets.IntSlider(value=70, min=50, max=100, step=1, description='Exit RSI:')
+optimize_button = widgets.Button(description="Optimize RSI")
+button = widgets.Button(description="Show RSI Strategy Graph")
+output = widgets.Output()
+
+def on_button_clicked(b):
+    with output:
+        clear_output(wait=True)
+        tickers = tickers_widget.value.strip().upper().split(',')
+        entry_rsi = entry_rsi_slider.value
+        exit_rsi = exit_rsi_slider.value
+        for ticker in tickers:
+            ticker = ticker.strip()
+            if not ticker:
+                continue
+            data = yf.download(ticker, period="1y", interval="1d")
+            if data.empty:
+                print(f"No data fetched for {ticker}. Please check the ticker symbol.")
+                continue
+            data = calculate_strategy_returns(data, entry_rsi, exit_rsi)
+            plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi)
+
+def on_optimize_button_clicked(b):
+    with output:
+        clear_output(wait=True)
+        tickers = tickers_widget.value.strip().upper().split(',')
+        for ticker in tickers:
+            ticker = ticker.strip()
+            if not ticker:
+                continue
+            best_entry_rsi, best_exit_rsi, best_return = optimize_rsi(ticker)
+            if best_entry_rsi is not None and best_exit_rsi is not None:
+                print(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Best Return: {best_return * 100:.2f}%")
+                entry_rsi_slider.value = best_entry_rsi
+                exit_rsi_slider.value = best_exit_rsi
+                data = yf.download(ticker, period="1y", interval="1d")
+                if data.empty:
+                    print(f"No data fetched for {ticker}. Please check the ticker symbol.")
+                    continue
+                data = calculate_strategy_returns(data, best_entry_rsi, best_exit_rsi)
+                plot_stock_and_rsi_strategy(data, ticker, best_entry_rsi, best_exit_rsi)
+
+optimize_button.on_click(on_optimize_button_clicked)
+button.on_click(on_button_clicked)
+
+# Display the widgets
+display(tickers_widget, entry_rsi_slider, exit_rsi_slider, button, optimize_button, output)
