@@ -1,0 +1,5 @@
+yfinance
+plotly
+ipywidgets
+voila
+pandas
