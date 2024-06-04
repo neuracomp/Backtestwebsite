@@ -149,6 +149,7 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
 def optimize_rsi(ticker, start_date, end_date, interval):
     try:
         data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
+        data = data.asfreq('1D', method='pad')  # Forward fill missing dates to ensure continuity
 
         if data.empty:
             st.error("No data fetched. Please check the ticker symbol or date range.")
@@ -193,7 +194,7 @@ def optimize_rsi(ticker, start_date, end_date, interval):
 # Streamlit app
 st.title("RSI Trading Strategy Optimization")
 
-tickers = st.text_input('Tickers (comma separated)', '')
+tickers = st.text_input('Tickers (comma separated)', 'AAPL,MSFT,GOOG')
 entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1)
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1)
 window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1)
@@ -221,6 +222,7 @@ if show_button:
             continue
         try:
             data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
+            data = data.asfreq('1D', method='pad')  # Forward fill missing dates to ensure continuity
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
@@ -244,6 +246,7 @@ if optimize_button:
                 exit_rsi = best_exit_rsi
                 window = best_window
                 data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
+                data = data.asfreq('1D', method='pad')  # Forward fill missing dates to ensure continuity
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
