@@ -4,6 +4,7 @@ import plotly.graph_objs as go
 import plotly.subplots as sp
 import streamlit as st
 import traceback
+from datetime import date
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -82,9 +83,9 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
         final_cumulative_buy_hold_return = test_data['Cumulative Buy Hold Return'].iloc[-1] * 100
 
         fig = sp.make_subplots(rows=3, cols=1, shared_xaxes=True,
-                               subplot_titles=(f"{ticker} Stock Price - Last Year",
-                                               f"{ticker} RSI (Window={window}) - Last Year",
-                                               f"{ticker} Cumulative Returns - Last Year"))
+                               subplot_titles=(f"{ticker} Stock Price",
+                                               f"{ticker} RSI (Window={window})",
+                                               f"{ticker} Cumulative Returns"))
 
         # Plot closing prices
         fig.add_trace(go.Scatter(x=train_data.index, y=train_data['Close'], mode='lines', name='Close Price (Train)', line=dict(color='blue')),
@@ -131,9 +132,9 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
         st.error(traceback.format_exc())
 
 # Function to find the best RSI combination using train-test split with a progress bar
-def optimize_rsi(ticker):
+def optimize_rsi(ticker, start_date, end_date):
     try:
-        data = yf.download(ticker, period="2y", interval="1d")  # Use 2 years of data
+        data = yf.download(ticker, start=start_date, end=end_date, interval="1d")  # Use selected date range
 
         if data.empty:
             st.error("No data fetched. Please check the ticker symbol.")
@@ -182,6 +183,8 @@ tickers = st.text_input('Tickers (comma separated)', 'AAPL,MSFT,GOOG')
 entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=30, step=1)
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=70, step=1)
 window = st.slider('RSI Window', min_value=10, max_value=30, value=14, step=1)
+start_date = st.date_input('Start Date', value=date(2022, 1, 1))
+end_date = st.date_input('End Date', value=date.today())
 optimize_button = st.button('Optimize RSI')
 show_button = st.button('Show RSI Strategy Graph')
 
@@ -191,7 +194,7 @@ if show_button:
         if not ticker:
             continue
         try:
-            data = yf.download(ticker, period="2y", interval="1d")
+            data = yf.download(ticker, start=start_date, end=end_date, interval="1d")
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol.")
                 continue
@@ -208,13 +211,13 @@ if optimize_button:
         if not ticker:
             continue
         try:
-            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker)
+            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
                 entry_rsi = best_entry_rsi
                 exit_rsi = best_exit_rsi
                 window = best_window
-                data = yf.download(ticker, period="2y", interval="1d")
+                data = yf.download(ticker, start=start_date, end=end_date, interval="1d")
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol.")
                     continue
