@@ -4,7 +4,7 @@ import plotly.graph_objs as go
 import plotly.subplots as sp
 import streamlit as st
 import traceback
-from datetime import date
+from datetime import date, timedelta
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -134,7 +134,7 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
 # Function to find the best RSI combination using train-test split with a progress bar
 def optimize_rsi(ticker, start_date, end_date, interval):
     try:
-        data = yf.download(ticker, start=start_date, end=end_date, interval=interval)  # Use selected date range and interval
+        data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
 
         if data.empty:
             st.error("No data fetched. Please check the ticker symbol or date range.")
@@ -202,7 +202,7 @@ if show_button:
         if not ticker:
             continue
         try:
-            data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
+            data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
@@ -225,7 +225,7 @@ if optimize_button:
                 entry_rsi = best_entry_rsi
                 exit_rsi = best_exit_rsi
                 window = best_window
-                data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
+                data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
