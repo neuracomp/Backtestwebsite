@@ -151,9 +151,9 @@ def optimize_rsi(ticker, start_date, end_date):
         best_return = float('-inf')
         
         param_combinations = [(window, entry_rsi, exit_rsi) 
-                              for window in range(10, 31, 5) 
-                              for entry_rsi in range(0, 51, 5) 
-                              for exit_rsi in range(50, 101, 5)]
+                              for window in range(10, 31, 1) 
+                              for entry_rsi in range(0, 51, 1) 
+                              for exit_rsi in range(50, 101, 1)]
         
         progress_bar = st.progress(0)
         total_combinations = len(param_combinations)
