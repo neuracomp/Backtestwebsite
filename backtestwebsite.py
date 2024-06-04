@@ -132,16 +132,16 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
         st.error(traceback.format_exc())
 
 # Function to find the best RSI combination using train-test split with a progress bar
-def optimize_rsi(ticker, start_date, end_date):
+def optimize_rsi(ticker, start_date, end_date, interval):
     try:
-        data = yf.download(ticker, start=start_date, end=end_date, interval="1d")  # Use selected date range
+        data = yf.download(ticker, start=start_date, end=end_date, interval=interval)  # Use selected date range and interval
 
         if data.empty:
-            st.error("No data fetched. Please check the ticker symbol.")
+            st.error("No data fetched. Please check the ticker symbol or date range.")
             return None, None, None, None
         
         # Split data into training and testing sets (e.g., first 70% for training, last 30% for testing)
-        split_index = int(len(data) * 0.7)
+        split_index = int(len(data) * 0.5)
         train_data = data.iloc[:split_index]
         test_data = data.iloc[split_index:]
 
@@ -151,9 +151,9 @@ def optimize_rsi(ticker, start_date, end_date):
         best_return = float('-inf')
         
         param_combinations = [(window, entry_rsi, exit_rsi) 
-                              for window in range(10, 31, 1) 
-                              for entry_rsi in range(0, 51, 1) 
-                              for exit_rsi in range(50, 101, 1)]
+                              for window in range(10, 31, 2) 
+                              for entry_rsi in range(0, 51, 2) 
+                              for exit_rsi in range(50, 101, 2)]
         
         progress_bar = st.progress(0)
         total_combinations = len(param_combinations)
@@ -183,8 +183,16 @@ tickers = st.text_input('Tickers (comma separated)', 'AAPL,MSFT,GOOG')
 entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=30, step=1)
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=70, step=1)
 window = st.slider('RSI Window', min_value=10, max_value=30, value=14, step=1)
+interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7)
 start_date = st.date_input('Start Date', value=date(2022, 1, 1))
 end_date = st.date_input('End Date', value=date.today())
+
+# Display a warning if the selected interval is restricted
+if interval in ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h'] and (end_date - start_date).days > 60:
+    st.warning("Intraday intervals (interval <1d) are only available for the last 60 days.")
+if interval == '1m' and (end_date - start_date).days > 7:
+    st.warning("1-minute interval data is only available for the last 7 days.")
+
 optimize_button = st.button('Optimize RSI')
 show_button = st.button('Show RSI Strategy Graph')
 
@@ -194,11 +202,11 @@ if show_button:
         if not ticker:
             continue
         try:
-            data = yf.download(ticker, start=start_date, end=end_date, interval="1d")
+            data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
             if data.empty:
-                st.error(f"No data fetched for {ticker}. Please check the ticker symbol.")
+                st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
-            split_index = int(len(data) * 0.7)
+            split_index = int(len(data) * 0.5)
             data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], entry_rsi, exit_rsi, window)
             plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split_index)
         except Exception as e:
@@ -211,17 +219,17 @@ if optimize_button:
         if not ticker:
             continue
         try:
-            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date)
+            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
                 entry_rsi = best_entry_rsi
                 exit_rsi = best_exit_rsi
                 window = best_window
-                data = yf.download(ticker, start=start_date, end=end_date, interval="1d")
+                data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
                 if data.empty:
-                    st.error(f"No data fetched for {ticker}. Please check the ticker symbol.")
+                    st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
-                split_index = int(len(data) * 0.7)
+                split_index = int(len(data) * 0.5)
                 data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], best_entry_rsi, best_exit_rsi, best_window)
                 plot_stock_and_rsi_strategy(data, ticker, best_entry_rsi, best_exit_rsi, best_window, split_index)
         except Exception as e:
