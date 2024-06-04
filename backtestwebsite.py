@@ -149,11 +149,11 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
 def optimize_rsi(ticker, start_date, end_date, interval):
     try:
         data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
-        data = data.asfreq('1D', method='pad')  # Forward fill missing dates to ensure continuity
-
         if data.empty:
             st.error("No data fetched. Please check the ticker symbol or date range.")
             return None, None, None, None
+        
+        data = data.resample('D').ffill()  # Forward fill missing dates to ensure continuity
         
         # Split data into training and testing sets (e.g., first 70% for training, last 30% for testing)
         split_index = int(len(data) * 0.5)
@@ -222,7 +222,7 @@ if show_button:
             continue
         try:
             data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
-            data = data.asfreq('1D', method='pad')  # Forward fill missing dates to ensure continuity
+            data = data.resample('D').ffill()  # Forward fill missing dates to ensure continuity
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
@@ -246,7 +246,7 @@ if optimize_button:
                 exit_rsi = best_exit_rsi
                 window = best_window
                 data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
-                data = data.asfreq('1D', method='pad')  # Forward fill missing dates to ensure continuity
+                data = data.resample('D').ffill()  # Forward fill missing dates to ensure continuity
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
