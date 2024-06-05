@@ -4,7 +4,21 @@ import plotly.graph_objs as go
 import plotly.subplots as sp
 import streamlit as st
 import traceback
-from datetime import date
+from datetime import date, timedelta
+
+# Initialize session state
+if 'entry_rsi' not in st.session_state:
+    st.session_state.entry_rsi = 30
+if 'exit_rsi' not in st.session_state:
+    st.session_state.exit_rsi = 70
+if 'window' not in st.session_state:
+    st.session_state.window = 14
+if 'interval' not in st.session_state:
+    st.session_state.interval = '1d'
+if 'start_date' not in st.session_state:
+    st.session_state.start_date = date(2022, 1, 1)
+if 'end_date' not in st.session_state:
+    st.session_state.end_date = date.today()
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -134,7 +148,7 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
 # Function to find the best RSI combination using train-test split with a progress bar
 def optimize_rsi(ticker, start_date, end_date, interval):
     try:
-        data = yf.download(ticker, start=start_date, end=end_date, interval=interval)  # Use selected date range and interval
+        data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
 
         if data.empty:
             st.error("No data fetched. Please check the ticker symbol or date range.")
@@ -180,12 +194,16 @@ def optimize_rsi(ticker, start_date, end_date, interval):
 st.title("RSI Trading Strategy Optimization")
 
 tickers = st.text_input('Tickers (comma separated)', 'AAPL,MSFT,GOOG')
-entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=30, step=1)
-exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=70, step=1)
-window = st.slider('RSI Window', min_value=10, max_value=30, value=14, step=1)
+entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1)
+exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1)
+window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1)
 interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7)
-start_date = st.date_input('Start Date', value=date(2022, 1, 1))
-end_date = st.date_input('End Date', value=date.today())
+start_date = st.date_input('Start Date', value=st.session_state.start_date)
+end_date = st.date_input('End Date', value=st.session_state.end_date)
+
+# Adjust displayed dates by subtracting one day
+adjusted_start_date = start_date - timedelta(days=1)
+adjusted_end_date = end_date - timedelta(days=1)
 
 # Display a warning if the selected interval is restricted
 if interval in ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h'] and (end_date - start_date).days > 60:
@@ -202,7 +220,7 @@ if show_button:
         if not ticker:
             continue
         try:
-            data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
+            data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
@@ -219,13 +237,13 @@ if optimize_button:
         if not ticker:
             continue
         try:
-            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval)
+            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, adjusted_start_date, adjusted_end_date, interval)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
                 entry_rsi = best_entry_rsi
                 exit_rsi = best_exit_rsi
                 window = best_window
-                data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
+                data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
