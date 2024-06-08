@@ -193,7 +193,7 @@ def optimize_rsi(ticker, start_date, end_date, interval):
 # Streamlit app
 st.title("RSI Trading Strategy Optimization")
 
-tickers = st.text_input('Tickers (comma separated)', 'AAPL,MSFT,GOOG')
+tickers = st.text_input('Tickers (comma separated)', 'SPY')
 entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1)
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1)
 window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1)
