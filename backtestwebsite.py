@@ -155,7 +155,7 @@ def optimize_rsi(ticker, start_date, end_date, interval):
             return None, None, None, None
         
         # Split data into training and testing sets (e.g., first 70% for training, last 30% for testing)
-        split_index = int(len(data) * 0.5)
+        split_index = int(len(data) * 0.1)
         train_data = data.iloc[:split_index]
         test_data = data.iloc[split_index:]
 
@@ -224,7 +224,7 @@ if show_button:
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
-            split_index = int(len(data) * 0.5)
+            split_index = int(len(data) * 0.1)
             data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], entry_rsi, exit_rsi, window)
             plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split_index)
         except Exception as e:
@@ -247,7 +247,7 @@ if optimize_button:
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
-                split_index = int(len(data) * 0.5)
+                split_index = int(len(data) * 0.1)
                 data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], best_entry_rsi, best_exit_rsi, best_window)
                 plot_stock_and_rsi_strategy(data, ticker, best_entry_rsi, best_exit_rsi, best_window, split_index)
         except Exception as e:
