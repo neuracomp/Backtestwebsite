@@ -40,7 +40,7 @@ def calculate_rsi(data, window=14):
         st.error(traceback.format_exc())
         return pd.Series([])
 
-# Function to calculate strategy returns
+# Function to calculate strategy returns using a rolling window
 def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
     try:
         data['RSI'] = calculate_rsi(data, window)
@@ -64,7 +64,7 @@ def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
         st.error(traceback.format_exc())
         return pd.DataFrame()
 
-# Function to calculate returns only during the testing period
+# Function to calculate returns using a rolling window during the testing period
 def calculate_testing_strategy_returns(train_data, test_data, entry_rsi, exit_rsi, window):
     try:
         combined_data = pd.concat([train_data, test_data])
