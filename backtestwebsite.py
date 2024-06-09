@@ -20,6 +20,8 @@ if 'start_date' not in st.session_state:
     st.session_state.start_date = date(2022, 1, 1)
 if 'end_date' not in st.session_state:
     st.session_state.end_date = date.today()
+if 'days_range' not in st.session_state:
+    st.session_state.days_range = 30
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -180,8 +182,7 @@ def optimize_rsi(ticker, start_date, end_date, interval):
         def evaluate_combination(params):
             window, entry_rsi, exit_rsi = params
             temp_train_data = calculate_strategy_returns(train_data.copy(), entry_rsi, exit_rsi, window)
-            temp_test_data = calculate_testing_strategy_returns(train_data.copy(), test_data.copy(), entry_rsi, exit_rsi, window)
-            final_return = temp_test_data['Cumulative Strategy Return'].iloc[-1]
+            final_return = temp_train_data['Cumulative Strategy Return'].iloc[-1]
             return window, entry_rsi, exit_rsi, final_return
         
         with ThreadPoolExecutor() as executor:
@@ -209,11 +210,28 @@ entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_s
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1, help='The RSI value above which the strategy will exit a long position.')
 window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.')
 interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
-days_range = st.slider('Number of Days', min_value=1, max_value=60, value=30, step=1, help='The number of days for fetching historical data.')
+
+# Calendar inputs for start and end dates
+start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.')
+end_date_calendar = st.date_input('End Date (Calendar)', value=st.session_state.end_date, help='The end date for fetching historical data.')
+
+# Slider input for number of days
+days_range = st.slider('Number of Days', min_value=1, max_value=60, value=st.session_state.days_range, step=1, help='The number of days for fetching historical data.')
 
 # Calculate start_date and end_date based on days_range
-end_date = date.today()
-start_date = end_date - timedelta(days=days_range)
+end_date_slider = date.today()
+start_date_slider = end_date_slider - timedelta(days=days_range)
+
+# Determine which input to use (calendar or slider)
+use_calendar = st.checkbox('Use Calendar Inputs', value=True)
+
+# Set start_date and end_date based on the selected input method
+if use_calendar:
+    start_date = start_date_calendar
+    end_date = end_date_calendar
+else:
+    start_date = start_date_slider
+    end_date = end_date_slider
 
 # Display a warning if the selected interval is restricted
 if interval in ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h'] and (end_date - start_date).days > 60:
@@ -234,7 +252,7 @@ if show_button:
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
-            split_index = int(len(data) * 0.1)
+            split_index = int(len(data) * 0.7)
             data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], entry_rsi, exit_rsi, window)
             plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split_index)
         except Exception as e:
@@ -257,7 +275,7 @@ if optimize_button:
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
-                split_index = int(len(data) * 0.1)
+                split_index = int(len(data) * 0.7)
                 data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], best_entry_rsi, best_exit_rsi, best_window)
                 plot_stock_and_rsi_strategy(data, ticker, best_entry_rsi, best_exit_rsi, best_window, split_index)
         except Exception as e:
