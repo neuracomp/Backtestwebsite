@@ -209,12 +209,11 @@ entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_s
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1, help='The RSI value above which the strategy will exit a long position.')
 window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.')
 interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
-start_date = st.date_input('Start Date', value=st.session_state.start_date, help='The start date for fetching historical data.')
-end_date = st.date_input('End Date', value=st.session_state.end_date, help='The end date for fetching historical data.')
+days_range = st.slider('Number of Days', min_value=1, max_value=60, value=30, step=1, help='The number of days for fetching historical data.')
 
-# Adjust displayed dates by adding one day
-adjusted_start_date = start_date + timedelta(days=1)
-adjusted_end_date = end_date + timedelta(days=1)
+# Calculate start_date and end_date based on days_range
+end_date = date.today()
+start_date = end_date - timedelta(days=days_range)
 
 # Display a warning if the selected interval is restricted
 if interval in ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h'] and (end_date - start_date).days > 60:
@@ -231,7 +230,7 @@ if show_button:
         if not ticker:
             continue
         try:
-            data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
+            data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
@@ -248,13 +247,13 @@ if optimize_button:
         if not ticker:
             continue
         try:
-            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, adjusted_start_date, adjusted_end_date, interval)
+            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
                 st.session_state.entry_rsi = best_entry_rsi
                 st.session_state.exit_rsi = best_exit_rsi
                 st.session_state.window = best_window
-                data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
+                data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
