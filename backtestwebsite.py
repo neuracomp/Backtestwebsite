@@ -40,7 +40,7 @@ def calculate_rsi(data, window=14):
         st.error(traceback.format_exc())
         return pd.Series([])
 
-# Function to calculate strategy returns using a rolling window
+# Function to calculate strategy returns
 def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
     try:
         data['RSI'] = calculate_rsi(data, window)
@@ -64,7 +64,7 @@ def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
         st.error(traceback.format_exc())
         return pd.DataFrame()
 
-# Function to calculate returns using a rolling window during the testing period
+# Function to calculate returns only during the testing period
 def calculate_testing_strategy_returns(train_data, test_data, entry_rsi, exit_rsi, window):
     try:
         combined_data = pd.concat([train_data, test_data])
@@ -149,7 +149,7 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
         st.error("Error in plot_stock_and_rsi_strategy:")
         st.error(traceback.format_exc())
 
-# Function to find the best RSI combination using walk-forward optimization with a rolling window
+# Function to find the best RSI combination using train-test split with a progress bar
 def optimize_rsi(ticker, start_date, end_date, interval):
     try:
         data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
@@ -158,45 +158,43 @@ def optimize_rsi(ticker, start_date, end_date, interval):
             st.error("No data fetched. Please check the ticker symbol or date range.")
             return None, None, None, None
         
-        window_size = int(len(data) * 0.1)  # Use 10% of data for initial training
-        test_size = len(data) - window_size
+        # Split data into training and testing sets (e.g., first 70% for training, last 30% for testing)
+        split_index = int(len(data) * 0.1)
+        train_data = data.iloc[:split_index]
+        test_data = data.iloc[split_index:]
 
         best_entry_rsi = None
         best_exit_rsi = None
         best_window = None
         best_return = float('-inf')
-
+        
         param_combinations = [(window, entry_rsi, exit_rsi) 
-                              for window in range(10, 30, 2) 
-                              for entry_rsi in range(0, 51, 2) 
-                              for exit_rsi in range(50, 101, 2)]
+                              for window in range(10, 30, 3) 
+                              for entry_rsi in range(0, 51, 3) 
+                              for exit_rsi in range(50, 101, 3)]
         
         progress_bar = st.progress(0)
-        total_combinations = len(param_combinations) * test_size
+        total_combinations = len(param_combinations)
         progress = 0
         
-        for start in range(test_size):
-            train_data = data.iloc[start:start + window_size]
-            test_data = data.iloc[start + window_size:start + window_size + 1]
-            
-            def evaluate_combination(params):
-                window, entry_rsi, exit_rsi = params
-                temp_train_data = calculate_strategy_returns(train_data.copy(), entry_rsi, exit_rsi, window)
-                temp_test_data = calculate_testing_strategy_returns(train_data.copy(), test_data.copy(), entry_rsi, exit_rsi, window)
-                final_return = temp_test_data['Cumulative Strategy Return'].iloc[-1]
-                return window, entry_rsi, exit_rsi, final_return
-            
-            with ThreadPoolExecutor() as executor:
-                results = list(executor.map(evaluate_combination, param_combinations))
-            
-            for window, entry_rsi, exit_rsi, final_return in results:
-                if final_return > best_return:
-                    best_return = final_return
-                    best_entry_rsi = entry_rsi
-                    best_exit_rsi = exit_rsi
-                    best_window = window
-                progress += 1
-                progress_bar.progress(progress / total_combinations)
+        def evaluate_combination(params):
+            window, entry_rsi, exit_rsi = params
+            temp_train_data = calculate_strategy_returns(train_data.copy(), entry_rsi, exit_rsi, window)
+            temp_test_data = calculate_testing_strategy_returns(train_data.copy(), test_data.copy(), entry_rsi, exit_rsi, window)
+            final_return = temp_test_data['Cumulative Strategy Return'].iloc[-1]
+            return window, entry_rsi, exit_rsi, final_return
+        
+        with ThreadPoolExecutor() as executor:
+            results = list(executor.map(evaluate_combination, param_combinations))
+        
+        for window, entry_rsi, exit_rsi, final_return in results:
+            if final_return > best_return:
+                best_return = final_return
+                best_entry_rsi = entry_rsi
+                best_exit_rsi = exit_rsi
+                best_window = window
+            progress += 1
+            progress_bar.progress(progress / total_combinations)
         
         return best_entry_rsi, best_exit_rsi, best_window, best_return
     except Exception as e:
