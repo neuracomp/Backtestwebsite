@@ -5,6 +5,7 @@ import plotly.subplots as sp
 import streamlit as st
 import traceback
 from datetime import date, timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 # Initialize session state
 if 'entry_rsi' not in st.session_state:
@@ -37,6 +38,7 @@ def calculate_rsi(data, window=14):
     except Exception as e:
         st.error("Error in calculate_rsi:")
         st.error(traceback.format_exc())
+        return pd.Series([])
 
 # Function to calculate strategy returns
 def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
@@ -60,6 +62,7 @@ def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
     except Exception as e:
         st.error("Error in calculate_strategy_returns:")
         st.error(traceback.format_exc())
+        return pd.DataFrame()
 
 # Function to calculate returns only during the testing period
 def calculate_testing_strategy_returns(train_data, test_data, entry_rsi, exit_rsi, window):
@@ -85,6 +88,7 @@ def calculate_testing_strategy_returns(train_data, test_data, entry_rsi, exit_rs
     except Exception as e:
         st.error("Error in calculate_testing_strategy_returns:")
         st.error(traceback.format_exc())
+        return pd.DataFrame()
 
 # Function to plot the stock data and RSI strategy
 def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split_index):
@@ -173,10 +177,17 @@ def optimize_rsi(ticker, start_date, end_date, interval):
         total_combinations = len(param_combinations)
         progress = 0
         
-        for window, entry_rsi, exit_rsi in param_combinations:
+        def evaluate_combination(params):
+            window, entry_rsi, exit_rsi = params
             temp_train_data = calculate_strategy_returns(train_data.copy(), entry_rsi, exit_rsi, window)
             temp_test_data = calculate_testing_strategy_returns(train_data.copy(), test_data.copy(), entry_rsi, exit_rsi, window)
             final_return = temp_test_data['Cumulative Strategy Return'].iloc[-1]
+            return window, entry_rsi, exit_rsi, final_return
+        
+        with ThreadPoolExecutor() as executor:
+            results = list(executor.map(evaluate_combination, param_combinations))
+        
+        for window, entry_rsi, exit_rsi, final_return in results:
             if final_return > best_return:
                 best_return = final_return
                 best_entry_rsi = entry_rsi
@@ -194,12 +205,12 @@ def optimize_rsi(ticker, start_date, end_date, interval):
 st.title("RSI Trading Strategy Optimization")
 
 tickers = st.text_input('Tickers (comma separated)', 'SPY')
-entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1)
-exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1)
-window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1)
-interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7)
-start_date = st.date_input('Start Date', value=st.session_state.start_date)
-end_date = st.date_input('End Date', value=st.session_state.end_date)
+entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1, help='The RSI value below which the strategy will enter a long position.')
+exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1, help='The RSI value above which the strategy will exit a long position.')
+window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.')
+interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
+start_date = st.date_input('Start Date', value=st.session_state.start_date, help='The start date for fetching historical data.')
+end_date = st.date_input('End Date', value=st.session_state.end_date, help='The end date for fetching historical data.')
 
 # Adjust displayed dates by subtracting one day
 adjusted_start_date = start_date - timedelta(days=1)
@@ -240,9 +251,9 @@ if optimize_button:
             best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, adjusted_start_date, adjusted_end_date, interval)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
-                entry_rsi = best_entry_rsi
-                exit_rsi = best_exit_rsi
-                window = best_window
+                st.session_state.entry_rsi = best_entry_rsi
+                st.session_state.exit_rsi = best_exit_rsi
+                st.session_state.window = best_window
                 data = yf.download(ticker, start=adjusted_start_date, end=adjusted_end_date + timedelta(days=1), interval=interval)  # Adjust end date
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
