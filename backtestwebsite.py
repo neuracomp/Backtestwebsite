@@ -169,9 +169,9 @@ def optimize_rsi(ticker, start_date, end_date, interval):
         best_return = float('-inf')
         
         param_combinations = [(window, entry_rsi, exit_rsi) 
-                              for window in range(10, 30, 3) 
-                              for entry_rsi in range(0, 51, 3) 
-                              for exit_rsi in range(50, 101, 3)]
+                              for window in range(10, 30, 2) 
+                              for entry_rsi in range(0, 51, 2) 
+                              for exit_rsi in range(50, 101, 2)]
         
         progress_bar = st.progress(0)
         total_combinations = len(param_combinations)
@@ -212,9 +212,9 @@ interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m
 start_date = st.date_input('Start Date', value=st.session_state.start_date, help='The start date for fetching historical data.')
 end_date = st.date_input('End Date', value=st.session_state.end_date, help='The end date for fetching historical data.')
 
-# Adjust displayed dates by subtracting one day
-adjusted_start_date = start_date - timedelta(days=1)
-adjusted_end_date = end_date - timedelta(days=1)
+# Adjust displayed dates by adding one day
+adjusted_start_date = start_date + timedelta(days=1)
+adjusted_end_date = end_date + timedelta(days=1)
 
 # Display a warning if the selected interval is restricted
 if interval in ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h'] and (end_date - start_date).days > 60:
