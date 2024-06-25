@@ -208,7 +208,7 @@ def plot_stock_and_macd_strategy(data, ticker, fast_period, slow_period, signal_
         fig.add_trace(go.Scatter(x=test_data.index, y=test_data['Cumulative Strategy Return'] * 100, mode='lines', name='Cumulative Strategy Return (Test)', line=dict(color='green')),
                       row=3, col=1)
         # Plot cumulative buy-and-hold return
-        fig.add_trace(go.Scatter(x(test_data.index, y=test_data['Cumulative Buy Hold Return'] * 100, mode='lines', name='Cumulative Buy and Hold Return (Test)', line=dict(color='blue')),
+        fig.add_trace(go.Scatter(x=test_data.index, y=test_data['Cumulative Buy Hold Return'] * 100, mode='lines', name='Cumulative Buy and Hold Return (Test)', line=dict(color='blue')),
                       row=3, col=1)
         
         # Add annotation for the final cumulative returns
