@@ -67,13 +67,14 @@ def calculate_macd(data, fast_period=12, slow_period=26, signal_period=9):
         return pd.Series([]), pd.Series([]), pd.Series([])
 
 # Function to calculate RSI strategy returns
-def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
+def calculate_strategy_returns(train_data, test_data, entry_rsi, exit_rsi, window):
     try:
+        data = pd.concat([train_data, test_data])
         data['RSI'] = calculate_rsi(data, window)
         data['Position'] = 0  # Initial position is neutral (0)
         
         position = 0
-        for i in range(1, len(data)):
+        for i in range(len(train_data), len(data)):
             if data['RSI'].iloc[i] < entry_rsi and position == 0:
                 position = 1  # Enter long position
             elif data['RSI'].iloc[i] > exit_rsi and position == 1:
@@ -83,6 +84,7 @@ def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
         data['Daily Return'] = data['Close'].pct_change()
         data['Strategy Return'] = data['Daily Return'] * data['Position'].shift(1)
         data['Cumulative Strategy Return'] = (1 + data['Strategy Return']).cumprod() - 1
+        data['Cumulative Buy Hold Return'] = (1 + data['Daily Return'].iloc[len(train_data):]).cumprod() - 1
         
         return data
     except Exception as e:
@@ -91,13 +93,14 @@ def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
         return pd.DataFrame()
 
 # Function to calculate MACD strategy returns
-def calculate_macd_strategy_returns(data, fast_period, slow_period, signal_period):
+def calculate_macd_strategy_returns(train_data, test_data, fast_period, slow_period, signal_period):
     try:
+        data = pd.concat([train_data, test_data])
         data['MACD'], data['Signal_Line'], data['Hist'] = calculate_macd(data, fast_period, slow_period, signal_period)
         data['Position'] = 0  # Initial position is neutral (0)
         
         position = 0
-        for i in range(1, len(data)):
+        for i in range(len(train_data), len(data)):
             if data['MACD'].iloc[i] > data['Signal_Line'].iloc[i] and position == 0:
                 position = 1  # Enter long position
             elif data['MACD'].iloc[i] < data['Signal_Line'].iloc[i] and position == 1:
@@ -107,6 +110,7 @@ def calculate_macd_strategy_returns(data, fast_period, slow_period, signal_perio
         data['Daily Return'] = data['Close'].pct_change()
         data['Strategy Return'] = data['Daily Return'] * data['Position'].shift(1)
         data['Cumulative Strategy Return'] = (1 + data['Strategy Return']).cumprod() - 1
+        data['Cumulative Buy Hold Return'] = (1 + data['Daily Return'].iloc[len(train_data):]).cumprod() - 1
         
         return data
     except Exception as e:
@@ -262,7 +266,7 @@ def optimize_rsi(ticker, start_date, end_date, interval, train_percentage):
         
         def evaluate_combination(params):
             window, entry_rsi, exit_rsi = params
-            temp_train_data = calculate_strategy_returns(train_data.copy(), entry_rsi, exit_rsi, window)
+            temp_train_data = calculate_strategy_returns(train_data.copy(), test_data.copy(), entry_rsi, exit_rsi, window)
             final_return = temp_train_data['Cumulative Strategy Return'].iloc[-1]
             return window, entry_rsi, exit_rsi, final_return
         
@@ -313,7 +317,7 @@ def optimize_macd(ticker, start_date, end_date, interval, train_percentage):
         
         def evaluate_combination(params):
             fast, slow, signal = params
-            temp_train_data = calculate_macd_strategy_returns(train_data.copy(), fast, slow, signal)
+            temp_train_data = calculate_macd_strategy_returns(train_data.copy(), test_data.copy(), fast, slow, signal)
             final_return = temp_train_data['Cumulative Strategy Return'].iloc[-1]
             return fast, slow, signal, final_return
         
