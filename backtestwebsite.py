@@ -208,7 +208,7 @@ def plot_stock_and_macd_strategy(data, ticker, fast_period, slow_period, signal_
         fig.add_trace(go.Scatter(x=test_data.index, y=test_data['Cumulative Strategy Return'] * 100, mode='lines', name='Cumulative Strategy Return (Test)', line=dict(color='green')),
                       row=3, col=1)
         # Plot cumulative buy-and-hold return
-        fig.add_trace(go.Scatter(x=test_data.index, y=test_data['Cumulative Buy Hold Return'] * 100, mode='lines', name='Cumulative Buy and Hold Return (Test)', line=dict(color='blue')),
+        fig.add_trace(go.Scatter(x(test_data.index, y=test_data['Cumulative Buy Hold Return'] * 100, mode='lines', name='Cumulative Buy and Hold Return (Test)', line=dict(color='blue')),
                       row=3, col=1)
         
         # Add annotation for the final cumulative returns
@@ -393,7 +393,7 @@ with tabs[0]:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
                 split_index = int(len(data) * (train_percentage / 100))
-                data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], entry_rsi, exit_rsi, window)
+                data = calculate_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], entry_rsi, exit_rsi, window)
                 plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split_index)
             except Exception as e:
                 st.error(f"Error processing {ticker}:")
@@ -416,7 +416,7 @@ with tabs[0]:
                         st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                         continue
                     split_index = int(len(data) * (train_percentage / 100))
-                    data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], best_entry_rsi, best_exit_rsi, best_window)
+                    data = calculate_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], best_entry_rsi, best_exit_rsi, best_window)
                     plot_stock_and_rsi_strategy(data, ticker, best_entry_rsi, best_exit_rsi, best_window, split_index)
             except Exception as e:
                 st.error(f"Error optimizing {ticker}:")
