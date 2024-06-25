@@ -307,9 +307,9 @@ def optimize_macd(ticker, start_date, end_date, interval, train_percentage):
         best_return = float('-inf')
         
         param_combinations = [(fast, slow, signal) 
-                              for fast in range(8, 15, 1) 
-                              for slow in range(20, 31, 1) 
-                              for signal in range(5, 15, 1)]
+                              for fast in range(4, 30, 1) 
+                              for slow in range(10, 62, 1) 
+                              for signal in range(3, 30, 1)]
         
         progress_bar = st.progress(0)
         total_combinations = len(param_combinations)
