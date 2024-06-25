@@ -343,27 +343,27 @@ with tabs[0]:
     st.header("RSI Trading Strategy Optimization")
 
     tickers = st.text_input('Tickers (comma separated)', 'SPY', key='tickers_rsi')
-    entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1, help='The RSI value below which the strategy will enter a long position.')
-    exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1, help='The RSI value above which the strategy will exit a long position.')
-    window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.')
-    interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
+    entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_state.entry_rsi, step=1, help='The RSI value below which the strategy will enter a long position.', key='entry_rsi')
+    exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1, help='The RSI value above which the strategy will exit a long position.', key='exit_rsi')
+    window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.', key='window_rsi')
+    interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.', key='interval_rsi')
 
     # Slider for the training data percentage
-    train_percentage = st.slider('Training Data Percentage', min_value=10, max_value=90, value=st.session_state.train_percentage, step=1, help='The percentage of data used for training.')
+    train_percentage = st.slider('Training Data Percentage', min_value=10, max_value=90, value=st.session_state.train_percentage, step=1, help='The percentage of data used for training.', key='train_percentage_rsi')
 
     # Calendar inputs for start and end dates
-    start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.')
-    end_date_calendar = st.date_input('End Date (Calendar)', value=st.session_state.end_date, help='The end date for fetching historical data.')
+    start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.', key='start_date_rsi')
+    end_date_calendar = st.date_input('End Date (Calendar)', value=st.session_state.end_date, help='The end date for fetching historical data.', key='end_date_rsi')
 
     # Slider input for number of days
-    days_range = st.slider('Number of Days', min_value=1, max_value=60, value=st.session_state.days_range, step=1, help='The number of days for fetching historical data.')
+    days_range = st.slider('Number of Days', min_value=1, max_value=60, value=st.session_state.days_range, step=1, help='The number of days for fetching historical data.', key='days_range_rsi')
 
     # Calculate start_date and end_date based on days_range
     end_date_slider = date.today()
     start_date_slider = end_date_slider - timedelta(days=days_range)
 
     # Determine which input to use (calendar or slider)
-    use_calendar = st.checkbox('Use Calendar Inputs', value=True)
+    use_calendar = st.checkbox('Use Calendar Inputs', value=True, key='use_calendar_rsi')
 
     # Set start_date and end_date based on the selected input method
     if use_calendar:
@@ -379,8 +379,8 @@ with tabs[0]:
     if interval == '1m' and (end_date - start_date).days > 7:
         st.warning("1-minute interval data is only available for the last 7 days.")
 
-    optimize_button = st.button('Optimize RSI')
-    show_button = st.button('Show RSI Strategy Graph')
+    optimize_button = st.button('Optimize RSI', key='optimize_button_rsi')
+    show_button = st.button('Show RSI Strategy Graph', key='show_button_rsi')
 
     if show_button:
         tickers_list = [ticker.strip().upper() for ticker in tickers.split(',')]
@@ -426,27 +426,27 @@ with tabs[1]:
     st.header("MACD Trading Strategy Optimization")
 
     tickers = st.text_input('Tickers (comma separated)', 'SPY', key='tickers_macd')
-    fast_period = st.slider('Fast Period', min_value=8, max_value=15, value=st.session_state.fast_period, step=1, help='The fast period for MACD calculation.')
-    slow_period = st.slider('Slow Period', min_value=20, max_value=31, value=st.session_state.slow_period, step=1, help='The slow period for MACD calculation.')
-    signal_period = st.slider('Signal Period', min_value=5, max_value=15, value=st.session_state.signal_period, step=1, help='The signal period for MACD calculation.')
-    interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
+    fast_period = st.slider('Fast Period', min_value=8, max_value=15, value=st.session_state.fast_period, step=1, help='The fast period for MACD calculation.', key='fast_period_macd')
+    slow_period = st.slider('Slow Period', min_value=20, max_value=31, value=st.session_state.slow_period, step=1, help='The slow period for MACD calculation.', key='slow_period_macd')
+    signal_period = st.slider('Signal Period', min_value=5, max_value=15, value=st.session_state.signal_period, step=1, help='The signal period for MACD calculation.', key='signal_period_macd')
+    interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.', key='interval_macd')
 
     # Slider for the training data percentage
-    train_percentage = st.slider('Training Data Percentage', min_value=10, max_value=90, value=st.session_state.train_percentage, step=1, help='The percentage of data used for training.')
+    train_percentage = st.slider('Training Data Percentage', min_value=10, max_value=90, value=st.session_state.train_percentage, step=1, help='The percentage of data used for training.', key='train_percentage_macd')
 
     # Calendar inputs for start and end dates
-    start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.')
-    end_date_calendar = st.date_input('End Date (Calendar)', value=st.session_state.end_date, help='The end date for fetching historical data.')
+    start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.', key='start_date_macd')
+    end_date_calendar = st.date_input('End Date (Calendar)', value=st.session_state.end_date, help='The end date for fetching historical data.', key='end_date_macd')
 
     # Slider input for number of days
-    days_range = st.slider('Number of Days', min_value=1, max_value=60, value=st.session_state.days_range, step=1, help='The number of days for fetching historical data.')
+    days_range = st.slider('Number of Days', min_value=1, max_value=60, value=st.session_state.days_range, step=1, help='The number of days for fetching historical data.', key='days_range_macd')
 
     # Calculate start_date and end_date based on days_range
     end_date_slider = date.today()
     start_date_slider = end_date_slider - timedelta(days=days_range)
 
     # Determine which input to use (calendar or slider)
-    use_calendar = st.checkbox('Use Calendar Inputs', value=True)
+    use_calendar = st.checkbox('Use Calendar Inputs', value=True, key='use_calendar_macd')
 
     # Set start_date and end_date based on the selected input method
     if use_calendar:
@@ -462,8 +462,8 @@ with tabs[1]:
     if interval == '1m' and (end_date - start_date).days > 7:
         st.warning("1-minute interval data is only available for the last 7 days.")
 
-    optimize_button = st.button('Optimize MACD')
-    show_button = st.button('Show MACD Strategy Graph')
+    optimize_button = st.button('Optimize MACD', key='optimize_button_macd')
+    show_button = st.button('Show MACD Strategy Graph', key='show_button_macd')
 
     if show_button:
         tickers_list = [ticker.strip().upper() for ticker in tickers.split(',')]
