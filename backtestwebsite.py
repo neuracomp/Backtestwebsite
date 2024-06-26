@@ -508,3 +508,4 @@ with tabs[1]:
             except Exception as e:
                 st.error(f"Error optimizing {ticker}:")
                 st.error(traceback.format_exc())
+
