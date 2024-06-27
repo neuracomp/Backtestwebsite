@@ -427,10 +427,11 @@ with tabs[0]:
                 best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval, train_percentage)
                 if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                     st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
-                    # Update session state before creating widgets
-                    st.session_state.optimized_entry_rsi = best_entry_rsi
-                    st.session_state.optimized_exit_rsi = best_exit_rsi
-                    st.session_state.optimized_window = best_window
+                    # Display optimized values without modifying the session state directly
+                    st.write(f"Optimized Entry RSI: {best_entry_rsi}")
+                    st.write(f"Optimized Exit RSI: {best_exit_rsi}")
+                    st.write(f"Optimized Window: {best_window}")
+                    st.write(f"Best Return: {best_return * 100:.2f}%")
                     data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
                     if data.empty:
                         st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
@@ -511,10 +512,11 @@ with tabs[1]:
                 best_fast_period, best_slow_period, best_signal_period, best_return = optimize_macd(ticker, start_date, end_date, interval, train_percentage)
                 if best_fast_period is not None and best_slow_period is not None and best_signal_period is not None:
                     st.success(f"{ticker} - Optimal Fast Period: {best_fast_period}, Optimal Slow Period: {best_slow_period}, Optimal Signal Period: {best_signal_period}, Best Return: {best_return * 100:.2f}%")
-                    # Update session state before creating widgets
-                    st.session_state.optimized_fast_period = best_fast_period
-                    st.session_state.optimized_slow_period = best_slow_period
-                    st.session_state.optimized_signal_period = best_signal_period
+                    # Display optimized values without modifying the session state directly
+                    st.write(f"Optimized Fast Period: {best_fast_period}")
+                    st.write(f"Optimized Slow Period: {best_slow_period}")
+                    st.write(f"Optimized Signal Period: {best_signal_period}")
+                    st.write(f"Best Return: {best_return * 100:.2f}%")
                     data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
                     if data.empty:
                         st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
@@ -525,3 +527,4 @@ with tabs[1]:
             except Exception as e:
                 st.error(f"Error optimizing {ticker}:")
                 st.error(traceback.format_exc())
+
