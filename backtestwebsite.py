@@ -32,20 +32,14 @@ if 'slow_period' not in st.session_state:
 if 'signal_period' not in st.session_state:
     st.session_state.signal_period = 9
 
-# Temporary session state for optimized values
-if 'optimized_entry_rsi' not in st.session_state:
-    st.session_state.optimized_entry_rsi = st.session_state.entry_rsi
-if 'optimized_exit_rsi' not in st.session_state:
-    st.session_state.optimized_exit_rsi = st.session_state.exit_rsi
-if 'optimized_window' not in st.session_state:
-    st.session_state.optimized_window = st.session_state.window
+# Temporary variables for optimized values
+optimized_entry_rsi = st.session_state.entry_rsi
+optimized_exit_rsi = st.session_state.exit_rsi
+optimized_window = st.session_state.window
 
-if 'optimized_fast_period' not in st.session_state:
-    st.session_state.optimized_fast_period = st.session_state.fast_period
-if 'optimized_slow_period' not in st.session_state:
-    st.session_state.optimized_slow_period = st.session_state.slow_period
-if 'optimized_signal_period' not in st.session_state:
-    st.session_state.optimized_signal_period = st.session_state.signal_period
+optimized_fast_period = st.session_state.fast_period
+optimized_slow_period = st.session_state.slow_period
+optimized_signal_period = st.session_state.signal_period
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -427,11 +421,10 @@ with tabs[0]:
                 best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval, train_percentage)
                 if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                     st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
-                    # Display optimized values without modifying the session state directly
-                    st.write(f"Optimized Entry RSI: {best_entry_rsi}")
-                    st.write(f"Optimized Exit RSI: {best_exit_rsi}")
-                    st.write(f"Optimized Window: {best_window}")
-                    st.write(f"Best Return: {best_return * 100:.2f}%")
+                    # Update the temporary variables instead of session state directly
+                    optimized_entry_rsi = best_entry_rsi
+                    optimized_exit_rsi = best_exit_rsi
+                    optimized_window = best_window
                     data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
                     if data.empty:
                         st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
@@ -512,11 +505,10 @@ with tabs[1]:
                 best_fast_period, best_slow_period, best_signal_period, best_return = optimize_macd(ticker, start_date, end_date, interval, train_percentage)
                 if best_fast_period is not None and best_slow_period is not None and best_signal_period is not None:
                     st.success(f"{ticker} - Optimal Fast Period: {best_fast_period}, Optimal Slow Period: {best_slow_period}, Optimal Signal Period: {best_signal_period}, Best Return: {best_return * 100:.2f}%")
-                    # Display optimized values without modifying the session state directly
-                    st.write(f"Optimized Fast Period: {best_fast_period}")
-                    st.write(f"Optimized Slow Period: {best_slow_period}")
-                    st.write(f"Optimized Signal Period: {best_signal_period}")
-                    st.write(f"Best Return: {best_return * 100:.2f}%")
+                    # Update the temporary variables instead of session state directly
+                    optimized_fast_period = best_fast_period
+                    optimized_slow_period = best_slow_period
+                    optimized_signal_period = best_signal_period
                     data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
                     if data.empty:
                         st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
