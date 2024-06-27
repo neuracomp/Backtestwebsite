@@ -412,6 +412,7 @@ with tabs[0]:
                 best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval, train_percentage)
                 if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                     st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
+                    # Update session state before creating widgets
                     st.session_state.entry_rsi = best_entry_rsi
                     st.session_state.exit_rsi = best_exit_rsi
                     st.session_state.window = best_window
@@ -495,6 +496,7 @@ with tabs[1]:
                 best_fast_period, best_slow_period, best_signal_period, best_return = optimize_macd(ticker, start_date, end_date, interval, train_percentage)
                 if best_fast_period is not None and best_slow_period is not None and best_signal_period is not None:
                     st.success(f"{ticker} - Optimal Fast Period: {best_fast_period}, Optimal Slow Period: {best_slow_period}, Optimal Signal Period: {best_signal_period}, Best Return: {best_return * 100:.2f}%")
+                    # Update session state before creating widgets
                     st.session_state.fast_period = best_fast_period
                     st.session_state.slow_period = best_slow_period
                     st.session_state.signal_period = best_signal_period
@@ -508,4 +510,3 @@ with tabs[1]:
             except Exception as e:
                 st.error(f"Error optimizing {ticker}:")
                 st.error(traceback.format_exc())
-
