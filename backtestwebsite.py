@@ -86,7 +86,7 @@ def calculate_testing_strategy_returns(train_data, test_data, entry_rsi, exit_rs
         combined_data['Daily Return'] = combined_data['Close'].pct_change()
         combined_data['Strategy Return'] = combined_data['Daily Return'] * combined_data['Position'].shift(1)
         combined_data['Cumulative Strategy Return'] = (1 + combined_data['Strategy Return']).cumprod() - 1
-        combined_data['Cumulative Buy Hold Return'] = (1 + combined_data['Daily Return']).cumprod() - 1
+        combined_data['Cumulative Buy Hold Return'] = (1 + combined_data['Daily Return'].iloc[len(train_data):]).cumprod() - 1
         
         return combined_data
     except Exception as e:
