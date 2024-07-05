@@ -178,6 +178,7 @@ def optimize_rsi(ticker, start_date, end_date, interval, train_split):
                               for exit_rsi in range(50, 101, 2)]
         
         progress_bar = st.progress(0)
+        status_text = st.empty()
         total_combinations = len(param_combinations)
         progress = 0
         
@@ -190,7 +191,7 @@ def optimize_rsi(ticker, start_date, end_date, interval, train_split):
         with ThreadPoolExecutor() as executor:
             results = list(executor.map(evaluate_combination, param_combinations))
         
-        for window, entry_rsi, exit_rsi, final_return in results:
+        for idx, (window, entry_rsi, exit_rsi, final_return) in enumerate(results):
             if final_return > best_return:
                 best_return = final_return
                 best_entry_rsi = entry_rsi
@@ -198,6 +199,7 @@ def optimize_rsi(ticker, start_date, end_date, interval, train_split):
                 best_window = window
             progress += 1
             progress_bar.progress(progress / total_combinations)
+            status_text.text(f"Evaluating combination {idx + 1}/{total_combinations}: Window={window}, Entry RSI={entry_rsi}, Exit RSI={exit_rsi}")
         
         return best_entry_rsi, best_exit_rsi, best_window, best_return
     except Exception as e:
