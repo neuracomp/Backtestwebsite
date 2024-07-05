@@ -22,6 +22,8 @@ if 'end_date' not in st.session_state:
     st.session_state.end_date = date.today()
 if 'days_range' not in st.session_state:
     st.session_state.days_range = 30
+if 'train_split' not in st.session_state:
+    st.session_state.train_split = 70
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -152,7 +154,7 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split
         st.error(traceback.format_exc())
 
 # Function to find the best RSI combination using train-test split with a progress bar
-def optimize_rsi(ticker, start_date, end_date, interval):
+def optimize_rsi(ticker, start_date, end_date, interval, train_split):
     try:
         data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
 
@@ -160,8 +162,8 @@ def optimize_rsi(ticker, start_date, end_date, interval):
             st.error("No data fetched. Please check the ticker symbol or date range.")
             return None, None, None, None
         
-        # Split data into training and testing sets (e.g., first 70% for training, last 30% for testing)
-        split_index = int(len(data) * 0.1)
+        # Split data into training and testing sets based on the selected split percentage
+        split_index = int(len(data) * train_split / 100)
         train_data = data.iloc[:split_index]
         test_data = data.iloc[split_index:]
 
@@ -211,6 +213,9 @@ exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_s
 window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.')
 interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
 
+# Slider for the percentage of training data
+train_split = st.slider('Training Data Percentage', min_value=10, max_value=90, value=st.session_state.train_split, step=1, help='The percentage of data used for training.')
+
 # Calendar inputs for start and end dates
 start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.')
 end_date_calendar = st.date_input('End Date (Calendar)', value=st.session_state.end_date, help='The end date for fetching historical data.')
@@ -252,7 +257,7 @@ if show_button:
             if data.empty:
                 st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                 continue
-            split_index = int(len(data) * 0.1)
+            split_index = int(len(data) * train_split / 100)
             data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], entry_rsi, exit_rsi, window)
             plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window, split_index)
         except Exception as e:
@@ -265,7 +270,7 @@ if optimize_button:
         if not ticker:
             continue
         try:
-            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval)
+            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval, train_split)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
                 st.session_state.entry_rsi = best_entry_rsi
@@ -275,7 +280,7 @@ if optimize_button:
                 if data.empty:
                     st.error(f"No data fetched for {ticker}. Please check the ticker symbol or date range.")
                     continue
-                split_index = int(len(data) * 0.1)
+                split_index = int(len(data) * train_split / 100)
                 data = calculate_testing_strategy_returns(data.iloc[:split_index], data.iloc[split_index:], best_entry_rsi, best_exit_rsi, best_window)
                 plot_stock_and_rsi_strategy(data, ticker, best_entry_rsi, best_exit_rsi, best_window, split_index)
         except Exception as e:
