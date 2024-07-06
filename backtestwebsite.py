@@ -22,8 +22,6 @@ if 'end_date' not in st.session_state:
     st.session_state.end_date = date.today()
 if 'days_range' not in st.session_state:
     st.session_state.days_range = 30
-if 'train_split' not in st.session_state:
-    st.session_state.train_split = 70
 
 # Function to calculate RSI
 def calculate_rsi(data, window=14):
@@ -121,18 +119,14 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window):
         st.error(traceback.format_exc())
 
 # Function to find the best RSI combination using brute force with a progress bar
-def optimize_rsi(ticker, start_date, end_date, interval, train_split):
+def optimize_rsi(ticker, start_date, end_date, interval):
     try:
         data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
 
         if data.empty:
             st.error("No data fetched. Please check the ticker symbol or date range.")
             return None, None, None, None
-
-        split_index = int(len(data) * train_split / 100)
-        train_data = data.iloc[:split_index]
-        test_data = data.iloc[split_index:]
-
+        
         best_entry_rsi = None
         best_exit_rsi = None
         best_window = None
@@ -150,7 +144,7 @@ def optimize_rsi(ticker, start_date, end_date, interval, train_split):
         
         def evaluate_combination(params):
             window, entry_rsi, exit_rsi = params
-            temp_data = calculate_strategy_returns(train_data.copy(), entry_rsi, exit_rsi, window)
+            temp_data = calculate_strategy_returns(data.copy(), entry_rsi, exit_rsi, window)
             final_return = temp_data['Cumulative Strategy Return'].iloc[-1]
             return window, entry_rsi, exit_rsi, final_return
         
@@ -180,9 +174,6 @@ entry_rsi = st.slider('Entry RSI', min_value=0, max_value=50, value=st.session_s
 exit_rsi = st.slider('Exit RSI', min_value=50, max_value=100, value=st.session_state.exit_rsi, step=1, help='The RSI value above which the strategy will exit a long position.')
 window = st.slider('RSI Window', min_value=10, max_value=30, value=st.session_state.window, step=1, help='The window size for calculating RSI.')
 interval = st.selectbox('Interval', ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], index=7, help='The frequency of data points.')
-
-# Slider for the percentage of training data
-train_split = st.slider('Training Data Percentage', min_value=10, max_value=90, value=st.session_state.train_split, step=1, help='The percentage of data used for training.')
 
 # Calendar inputs for start and end dates
 start_date_calendar = st.date_input('Start Date (Calendar)', value=st.session_state.start_date, help='The start date for fetching historical data.')
@@ -237,7 +228,7 @@ if optimize_button:
         if not ticker:
             continue
         try:
-            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval, train_split)
+            best_entry_rsi, best_exit_rsi, best_window, best_return = optimize_rsi(ticker, start_date, end_date, interval)
             if best_entry_rsi is not None and best_exit_rsi is not None and best_window is not None:
                 st.success(f"{ticker} - Optimal Entry RSI: {best_entry_rsi}, Optimal Exit RSI: {best_exit_rsi}, Optimal Window: {best_window}, Best Return: {best_return * 100:.2f}%")
                 st.session_state.entry_rsi = best_entry_rsi
