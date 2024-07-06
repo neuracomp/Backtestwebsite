@@ -140,8 +140,8 @@ def optimize_rsi(ticker, start_date, end_date, interval, train_split):
         
         param_combinations = [(window, entry_rsi, exit_rsi) 
                               for window in range(10, 30, 2) 
-                              for entry_rsi in range(0, 51, 5) 
-                              for exit_rsi in range(50, 101, 5)]
+                              for entry_rsi in range(0, 51, 2) 
+                              for exit_rsi in range(50, 101, 2)]
         
         progress_bar = st.progress(0)
         status_text = st.empty()
