@@ -5,7 +5,6 @@ import plotly.subplots as sp
 import streamlit as st
 import traceback
 from datetime import date, timedelta
-from concurrent.futures import ThreadPoolExecutor
 
 # Initialize session state
 if 'entry_rsi' not in st.session_state:
@@ -23,24 +22,24 @@ if 'end_date' not in st.session_state:
 if 'days_range' not in st.session_state:
     st.session_state.days_range = 30
 
-# Function to calculate RSI
+# Function to calculate RSI using Exponential Moving Average (EMA)
 def calculate_rsi(data, window=14):
     try:
         delta = data['Close'].diff(1)
         gain = delta.where(delta > 0, 0)
         loss = -delta.where(delta < 0, 0)
         
-        avg_gain = gain.rolling(window=window, min_periods=1).mean()
-        avg_loss = loss.rolling(window=window, min_periods=1).mean()
+        avg_gain = gain.ewm(span=window, min_periods=1, adjust=False).mean()
+        avg_loss = loss.ewm(span=window, min_periods=1, adjust=False).mean()
         
-        rs = avg_gain / avg_loss
+        rs = avg_gain / (avg_loss + 1e-10)  # To avoid division by zero
         rsi = 100 - (100 / (1 + rs))
         
         return rsi
     except Exception as e:
         st.error("Error in calculate_rsi:")
         st.error(traceback.format_exc())
-        return pd.Series([])
+        return pd.Series(dtype=float)
 
 # Function to calculate strategy returns
 def calculate_strategy_returns(data, entry_rsi, exit_rsi, window):
@@ -98,16 +97,8 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window):
         fig.add_trace(go.Scatter(x=data.index, y=data['Cumulative Buy Hold Return'] * 100, mode='lines', name='Cumulative Buy and Hold Return', line=dict(color='blue')),
                       row=3, col=1)
         
-        # Add annotation for the final cumulative returns
-        fig.add_annotation(x=data.index[-1], y=final_cumulative_strategy_return,
-                           text=f"Final Strategy Return: {final_cumulative_strategy_return:.2f}%",
-                           showarrow=True, arrowhead=1, row=3, col=1)
-        fig.add_annotation(x=data.index[-1], y=final_cumulative_buy_hold_return,
-                           text=f"Final Buy & Hold Return: {final_cumulative_buy_hold_return:.2f}%",
-                           showarrow=True, arrowhead=1, row=3, col=1)
-
         # Update layout
-        fig.update_layout(height=900, width=900, title_text=f"{ticker} RSI Trading Strategy Analysis", showlegend=False)
+        fig.update_layout(height=900, width=900, title_text=f"{ticker} RSI Trading Strategy Analysis", showlegend=True)
         fig.update_xaxes(title_text="Date", row=3, col=1)
         fig.update_yaxes(title_text="Close Price", row=1, col=1)
         fig.update_yaxes(title_text="RSI", row=2, col=1)
@@ -118,7 +109,7 @@ def plot_stock_and_rsi_strategy(data, ticker, entry_rsi, exit_rsi, window):
         st.error("Error in plot_stock_and_rsi_strategy:")
         st.error(traceback.format_exc())
 
-# Function to find the best RSI combination using brute force with a progress bar
+# Function to find the best RSI combination using brute force
 def optimize_rsi(ticker, start_date, end_date, interval):
     try:
         data = yf.download(ticker, start=start_date, end=end_date + timedelta(days=1), interval=interval)  # Adjust end date
@@ -138,28 +129,18 @@ def optimize_rsi(ticker, start_date, end_date, interval):
                               for exit_rsi in range(50, 101, 5)]
         
         progress_bar = st.progress(0)
-        status_text = st.empty()
         total_combinations = len(param_combinations)
-        progress = 0
-        
-        def evaluate_combination(params):
-            window, entry_rsi, exit_rsi = params
+
+        # Loop through parameter combinations to find the best
+        for idx, (window, entry_rsi, exit_rsi) in enumerate(param_combinations):
             temp_data = calculate_strategy_returns(data.copy(), entry_rsi, exit_rsi, window)
             final_return = temp_data['Cumulative Strategy Return'].iloc[-1]
-            return window, entry_rsi, exit_rsi, final_return
-        
-        with ThreadPoolExecutor() as executor:
-            results = list(executor.map(evaluate_combination, param_combinations))
-        
-        for idx, (window, entry_rsi, exit_rsi, final_return) in enumerate(results):
             if final_return > best_return:
                 best_return = final_return
                 best_entry_rsi = entry_rsi
                 best_exit_rsi = exit_rsi
                 best_window = window
-            progress += 1
-            progress_bar.progress(progress / total_combinations)
-            status_text.text(f"Evaluating combination {idx + 1}/{total_combinations}: Window={window}, Entry RSI={entry_rsi}, Exit RSI={exit_rsi}")
+            progress_bar.progress((idx + 1) / total_combinations)
         
         return best_entry_rsi, best_exit_rsi, best_window, best_return
     except Exception as e:
